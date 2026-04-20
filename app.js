@@ -20,15 +20,21 @@ document.addEventListener('DOMContentLoaded', () => {
     localStorage.setItem('theme', isLight ? 'light' : 'dark');
   });
 
-  // ✨ Create Flying Stars
+  // ✨ Create Flying Stars (SCATTERED)
   function createShootingStars() {
     const container = document.getElementById('shootingStars');
-    for (let i = 0; i < 3; i++) {
+    // 40 Stars scattered across the entire screen
+    for (let i = 0; i < 40; i++) {
       const star = document.createElement('div');
       star.className = 'shooting-star';
-      star.style.top = Math.random() * 50 + '%';
-      star.style.animationDelay = Math.random() * 3 + 's';
-      star.style.animationDuration = (Math.random() * 2 + 2) + 's';
+      // Random vertical position (0% to 100%)
+      star.style.top = Math.random() * 100 + '%';
+      // Random horizontal position (0% to 100%)
+      star.style.left = Math.random() * 100 + '%';
+      // Random delay
+      star.style.animationDelay = Math.random() * 5 + 's';
+      // Random speed
+      star.style.animationDuration = (Math.random() * 2 + 1) + 's';
       container.appendChild(star);
     }
   }
@@ -133,10 +139,18 @@ document.addEventListener('DOMContentLoaded', () => {
     return '(Waning Crescent)';
   }
 
+  function formatTime(date) {
+    if (!date) return 'N/A';
+    return date.toLocaleTimeString('en-US', { 
+      hour: '2-digit', 
+      minute: '2-digit',
+      hour12: true
+    });
+  }
+
   // 🌅 Calculate Rise/Set Times
   function getRiseSetTimes(name, now) {
     try {
-      // Search for rise time (altitude = -0.833° for atmospheric refraction)
       const rise = window.Astronomy.SearchRiseSet(name, observer, now, -0.833, 1);
       const set = window.Astronomy.SearchRiseSet(name, observer, now, -0.833, -1);
       
@@ -156,15 +170,6 @@ document.addEventListener('DOMContentLoaded', () => {
     }
   }
 
-  function formatTime(date) {
-    if (!date) return 'N/A';
-    return date.toLocaleTimeString('en-US', { 
-      hour: '2-digit', 
-      minute: '2-digit',
-      hour12: true
-    });
-  }
-
   // 🪐 Planets with Rise/Set Times
   function updatePlanets() {
     const now = new Date();
@@ -180,7 +185,6 @@ document.addEventListener('DOMContentLoaded', () => {
         const vec = window.Astronomy.GeoVector(name, now, true);
         const dist = Math.hypot(vec.x, vec.y, vec.z);
 
-        // 🌅 Get rise/set times
         const { riseTime, setTime } = getRiseSetTimes(name, now);
 
         let riseSetHTML = '';
