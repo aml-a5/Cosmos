@@ -5,7 +5,6 @@ document.addEventListener('DOMContentLoaded', () => {
   const clockEl = document.getElementById('clock');
   const gridEl = document.getElementById('planet-grid');
 
-  // Clock
   setInterval(() => {
     clockEl.textContent = `UTC: ${new Date().toISOString().slice(0, 19).replace('T', ' ')} UTC`;
   }, 1000);
@@ -29,7 +28,7 @@ document.addEventListener('DOMContentLoaded', () => {
         pos => {
           clearTimeout(geoTimeout);
           observer = new window.Astronomy.Observer(pos.coords.latitude, pos.coords.longitude, 0);
-          statusEl.textContent = '✅ Live Tracking (v2.0)';
+          statusEl.textContent = '✅ Live Tracking with Moon & Transit Times';
           startTracker();
         },
         err => {
@@ -49,60 +48,140 @@ document.addEventListener('DOMContentLoaded', () => {
   }
 
   function startTracker() {
+    updateMoon();
     updatePlanets();
-    setInterval(updatePlanets, 60000);
+    setInterval(() => {
+      updateMoon();
+      updatePlanets();
+    }, 60000);
   }
 
+  // 🌙 Moon Phase & Position
+  function updateMoon() {
+    const now = new Date();
+    try {
+      const phase = window.Astronomy.MoonPhase(now);
+      const illumination = window.Astronomy.Illumination('Moon', now).phase_fraction;
+      const eq = window.Astronomy.Equator('Moon', now, observer, true, true);
+      const hor = window.Astronomy.Horizon(now, observer, eq.ra, eq.dec, 'normal');
+      const vec = window.Astronomy.GeoVector('Moon', now, true);
+      const dist = Math.hypot(vec.x, vec.y, vec.z);
+
+      // Calculate moon age (days since new moon)
+      const phaseAngle = window.Astronomy.MoonPhase(now);
+      const moonAge = (phaseAngle / 360) * 29.53;
+
+      // Get phase name
+      const phaseName = getMoonPhaseName(phaseAngle);
+
+      // Find next transit (highest point)
+      const transit = window.Astronomy.SearchHourAngle('Moon', observer, now, 0);
+      const transitTime = new Date(transit.time);
+
+      const moonCard = document.createElement('div');
+      moonCard.className = 'planet-card moon-card';
+      moonCard.innerHTML = `
+        <h2>🌙 Moon ${phaseName}</h2>
+        <p><span>Phase:</span> ${phaseAngle.toFixed(1)}°</p>
+        <p><span>Illumination:</span> ${(illumination * 100).toFixed(1)}%</p>
+        <p><span>Age:</span> ${moonAge.toFixed(1)} days</p>
+        <p><span>Altitude:</span> ${hor.altitude.toFixed(2)}°</p>
+        <p><span>Azimuth:</span> ${hor.azimuth.toFixed(2)}°</p>
+        <p><span>Distance:</span> ${dist.toFixed(4)} AU</p>
+        <div class="transit-info">
+          <span class="best-time">🌟 Best viewing: ${formatTime(transitTime)}</span>
+        </div>
+      `;
+      
+      // Insert moon card at the top
+      if (gridEl.firstChild) {
+        gridEl.insertBefore(moonCard, gridEl.firstChild);
+      } else {
+        gridEl.appendChild(moonCard);
+      }
+    } catch (err) {
+      console.error('❌ Moon Error:', err);
+    }
+  }
+
+  function getMoonPhaseName(angle) {
+    if (angle < 10 || angle > 350) return '(New)';
+    if (angle < 80) return '(Waxing Crescent)';
+    if (angle < 100) return '(First Quarter)';
+    if (angle < 170) return '(Waxing Gibbous)';
+    if (angle < 190) return '(Full)';
+    if (angle < 260) return '(Waning Gibbous)';
+    if (angle < 280) return '(Last Quarter)';
+    return '(Waning Crescent)';
+  }
+
+  function formatTime(date) {
+    return date.toLocaleTimeString('en-US', { 
+      hour: '2-digit', 
+      minute: '2-digit',
+      hour12: true,
+      timeZoneName: 'short'
+    });
+  }
+
+  // 🪐 Planets with Transit Times
   function updatePlanets() {
     const now = new Date();
+    
+    // Remove old planet cards (keep moon card if exists)
+    const moonCard = gridEl.querySelector('.moon-card');
     gridEl.innerHTML = '';
+    if (moonCard) gridEl.appendChild(moonCard);
 
     planets.forEach(name => {
       try {
-        // 1. Get Equator coords
         const eq = window.Astronomy.Equator(name, now, observer, true, true);
-        
-        // 2. Get Horizon coords
-        // We pass 0 if eq is null to prevent crash
-        const ra = eq ? eq.ra : 0;
-        const dec = eq ? eq.dec : 0;
-        const hor = window.Astronomy.Horizon(now, observer, ra, dec, 'normal');
-
-        // 3. Get Distance
+        const hor = window.Astronomy.Horizon(now, observer, eq.ra, eq.dec, 'normal');
         const vec = window.Astronomy.GeoVector(name, now, true);
-        const dist = vec ? Math.hypot(vec.x, vec.y, vec.z) : 0;
+        const dist = Math.hypot(vec.x, vec.y, vec.z);
 
-        // 4. SAFE Formatting (The Fix)
-        // We ensure everything is a number before calling toFixed
-        const altVal = (hor && typeof hor.altitude === 'number') ? hor.altitude : 0;
-        const azVal = (hor && typeof hor.azimuth === 'number') ? hor.azimuth : 0;
-        
-        // Debug log for the first planet only
-        if (name === 'Mercury') {
-          console.log('🔍 Raw Data Check:', { eq, hor, vec, altVal, azVal });
+        // 🌟 Calculate transit time (when planet reaches highest altitude)
+        let transitInfo = '';
+        try {
+          const transit = window.Astronomy.SearchHourAngle(name, observer, now, 0);
+          const transitTime = new Date(transit.time);
+          const hoursUntilTransit = (transitTime - now) / (1000 * 60 * 60);
+          
+          if (hor.altitude > 0) {
+            if (hoursUntilTransit > -2 && hoursUntilTransit < 2) {
+              transitInfo = `<div class="transit-info"><span class="best-time">🌟 Transiting now!</span></div>`;
+            } else if (hoursUntilTransit > 0 && hoursUntilTransit < 12) {
+              transitInfo = `<div class="transit-info"><span class="best-time">🌟 Best viewing: ${formatTime(transitTime)}</span></div>`;
+            } else {
+              transitInfo = `<div class="transit-info"><span>Next transit: ${formatTime(transitTime)}</span></div>`;
+            }
+          } else {
+            transitInfo = `<div class="transit-info"><span class="not-visible">🌑 Below horizon</span></div>`;
+          }
+        } catch (e) {
+          transitInfo = '';
         }
 
         const card = document.createElement('div');
         card.className = 'planet-card';
         card.innerHTML = `
           <h2>${getEmoji(name)} ${name}</h2>
-          <p><span>RA:</span> ${formatHMS(ra)}</p>
-          <p><span>Dec:</span> ${formatDMS(dec)}</p>
-          <p><span>Altitude:</span> ${altVal.toFixed(2)}°</p>
-          <p><span>Azimuth:</span> ${azVal.toFixed(2)}°</p>
+          <p><span>RA:</span> ${formatHMS(eq.ra)}</p>
+          <p><span>Dec:</span> ${formatDMS(eq.dec)}</p>
+          <p><span>Altitude:</span> ${hor.altitude.toFixed(2)}°</p>
+          <p><span>Azimuth:</span> ${hor.azimuth.toFixed(2)}°</p>
           <p><span>Distance:</span> ${dist.toFixed(4)} AU</p>
+          ${transitInfo}
         `;
         gridEl.appendChild(card);
 
       } catch (err) {
         console.error(`❌ ${name} Error:`, err);
-        gridEl.innerHTML += `<div class="planet-card"><h2>${getEmoji(name)} ${name}</h2><p style="color:red">Error</p></div>`;
       }
     });
   }
 
   function formatHMS(h) {
-    if (typeof h !== 'number') return '0h 0m 0s';
     const hours = Math.floor(h);
     const mins = Math.floor((h - hours) * 60);
     const secs = ((h - hours) * 3600) % 60;
@@ -110,7 +189,6 @@ document.addEventListener('DOMContentLoaded', () => {
   }
 
   function formatDMS(d) {
-    if (typeof d !== 'number') return '0° 0\' 0"';
     const sign = d < 0 ? '-' : '+';
     const abs = Math.abs(d);
     const deg = Math.floor(abs);
