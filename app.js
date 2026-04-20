@@ -28,7 +28,7 @@ document.addEventListener('DOMContentLoaded', () => {
         pos => {
           clearTimeout(geoTimeout);
           observer = new window.Astronomy.Observer(pos.coords.latitude, pos.coords.longitude, 0);
-          statusEl.textContent = '✅ Live Tracking with Moon & Transit Times';
+          statusEl.textContent = '✅ Live Tracking with Moon';
           startTracker();
         },
         err => {
@@ -56,45 +56,31 @@ document.addEventListener('DOMContentLoaded', () => {
     }, 60000);
   }
 
-  // 🌙 Moon Phase & Position (FIXED)
+  // 🌙 Moon Phase & Position (NO TRANSIT)
   function updateMoon() {
     const now = new Date();
     try {
-      const phase = window.Astronomy.MoonPhase(now);
-      const illumination = window.Astronomy.Illumination('Moon', now).phase_fraction;
+      const phaseAngle = window.Astronomy.MoonPhase(now);
+      const illum = window.Astronomy.Illumination('Moon', now);
       const eq = window.Astronomy.Equator('Moon', now, observer, true, true);
       const hor = window.Astronomy.Horizon(now, observer, eq.ra, eq.dec, 'normal');
       const vec = window.Astronomy.GeoVector('Moon', now, true);
       const dist = Math.hypot(vec.x, vec.y, vec.z);
 
-      const phaseAngle = window.Astronomy.MoonPhase(now);
       const moonAge = (phaseAngle / 360) * 29.53;
       const phaseName = getMoonPhaseName(phaseAngle);
-
-      // 🔧 FIXED: Safer transit calculation
-      let transitHTML = '';
-      try {
-        const transit = window.Astronomy.SearchHourAngle('Moon', observer, now, 0);
-        if (transit && transit.time && isFinite(transit.time)) {
-          const transitTime = new Date(transit.time);
-          transitHTML = `<div class="transit-info"><span class="best-time">🌟 Best viewing: ${formatTime(transitTime)}</span></div>`;
-        }
-      } catch (e) {
-        // Silently fail - transit not available
-        console.log('Moon transit not available');
-      }
+      const illumination = illum ? (illum.phase_fraction * 100) : 0;
 
       const moonCard = document.createElement('div');
       moonCard.className = 'planet-card moon-card';
       moonCard.innerHTML = `
         <h2>🌙 Moon ${phaseName}</h2>
         <p><span>Phase:</span> ${phaseAngle.toFixed(1)}°</p>
-        <p><span>Illumination:</span> ${(illumination * 100).toFixed(1)}%</p>
+        <p><span>Illumination:</span> ${illumination.toFixed(1)}%</p>
         <p><span>Age:</span> ${moonAge.toFixed(1)} days</p>
         <p><span>Altitude:</span> ${hor.altitude.toFixed(2)}°</p>
         <p><span>Azimuth:</span> ${hor.azimuth.toFixed(2)}°</p>
         <p><span>Distance:</span> ${dist.toFixed(4)} AU</p>
-        ${transitHTML}
       `;
       
       if (gridEl.firstChild) {
@@ -118,16 +104,7 @@ document.addEventListener('DOMContentLoaded', () => {
     return '(Waning Crescent)';
   }
 
-  function formatTime(date) {
-    return date.toLocaleTimeString('en-US', { 
-      hour: '2-digit', 
-      minute: '2-digit',
-      hour12: true,
-      timeZoneName: 'short'
-    });
-  }
-
-  // 🪐 Planets with Transit Times (FIXED)
+  // 🪐 Planets (NO TRANSIT)
   function updatePlanets() {
     const now = new Date();
     
@@ -142,31 +119,6 @@ document.addEventListener('DOMContentLoaded', () => {
         const vec = window.Astronomy.GeoVector(name, now, true);
         const dist = Math.hypot(vec.x, vec.y, vec.z);
 
-        // 🔧 FIXED: Safer transit calculation
-        let transitInfo = '';
-        try {
-          const transit = window.Astronomy.SearchHourAngle(name, observer, now, 0);
-          if (transit && transit.time && isFinite(transit.time)) {
-            const transitTime = new Date(transit.time);
-            const hoursUntilTransit = (transitTime - now) / (1000 * 60 * 60);
-            
-            if (hor.altitude > 0) {
-              if (hoursUntilTransit > -2 && hoursUntilTransit < 2) {
-                transitInfo = `<div class="transit-info"><span class="best-time">🌟 Transiting now!</span></div>`;
-              } else if (hoursUntilTransit > 0 && hoursUntilTransit < 12) {
-                transitInfo = `<div class="transit-info"><span class="best-time">🌟 Best viewing: ${formatTime(transitTime)}</span></div>`;
-              } else {
-                transitInfo = `<div class="transit-info"><span>Next transit: ${formatTime(transitTime)}</span></div>`;
-              }
-            } else {
-              transitInfo = `<div class="transit-info"><span class="not-visible">🌑 Below horizon</span></div>`;
-            }
-          }
-        } catch (e) {
-          // Transit calculation failed - just show planet data
-          transitInfo = '';
-        }
-
         const card = document.createElement('div');
         card.className = 'planet-card';
         card.innerHTML = `
@@ -176,7 +128,6 @@ document.addEventListener('DOMContentLoaded', () => {
           <p><span>Altitude:</span> ${hor.altitude.toFixed(2)}°</p>
           <p><span>Azimuth:</span> ${hor.azimuth.toFixed(2)}°</p>
           <p><span>Distance:</span> ${dist.toFixed(4)} AU</p>
-          ${transitInfo}
         `;
         gridEl.appendChild(card);
 
