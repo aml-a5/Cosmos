@@ -16,9 +16,51 @@ body {
   min-height: 100vh;
   padding: 2rem;
   line-height: 1.5;
+  position: relative;
+  overflow-x: hidden;
 }
 
-header { text-align: center; margin-bottom: 2.5rem; }
+/* 🌌 Starfield Background */
+body::before {
+  content: '';
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background-image: 
+    radial-gradient(2px 2px at 20px 30px, #eee, rgba(0,0,0,0)),
+    radial-gradient(2px 2px at 40px 70px, #fff, rgba(0,0,0,0)),
+    radial-gradient(2px 2px at 50px 160px, #ddd, rgba(0,0,0,0)),
+    radial-gradient(2px 2px at 90px 40px, #fff, rgba(0,0,0,0)),
+    radial-gradient(2px 2px at 130px 80px, #fff, rgba(0,0,0,0)),
+    radial-gradient(2px 2px at 160px 120px, #ddd, rgba(0,0,0,0));
+  background-repeat: repeat;
+  background-size: 200px 200px;
+  opacity: 0.3;
+  z-index: -1;
+  animation: twinkle 5s ease-in-out infinite;
+}
+
+body::after {
+  content: '';
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: radial-gradient(circle at 20% 50%, rgba(129, 140, 248, 0.15) 0%, transparent 50%),
+              radial-gradient(circle at 80% 80%, rgba(167, 139, 250, 0.1) 0%, transparent 50%);
+  z-index: -1;
+  pointer-events: none;
+}
+
+@keyframes twinkle {
+  0%, 100% { opacity: 0.3; }
+  50% { opacity: 0.5; }
+}
+
+header { text-align: center; margin-bottom: 2.5rem; position: relative; z-index: 1; }
 header h1 { font-size: 2.4rem; font-weight: 600; margin-bottom: 0.4rem; }
 #status { opacity: 0.8; font-size: 0.95rem; }
 #clock { font-variant-numeric: tabular-nums; opacity: 0.6; margin-top: 0.3rem; }
@@ -29,6 +71,8 @@ header h1 { font-size: 2.4rem; font-weight: 600; margin-bottom: 0.4rem; }
   gap: 1.5rem;
   max-width: 1100px;
   margin: 0 auto;
+  position: relative;
+  z-index: 1;
 }
 
 .planet-card {
@@ -63,6 +107,30 @@ header h1 { font-size: 2.4rem; font-weight: 600; margin-bottom: 0.4rem; }
 }
 
 .planet-card p span { font-weight: 500; color: var(--accent); }
+
+/* 🌙 Moon Card Styling */
+.moon-card {
+  background: linear-gradient(135deg, rgba(129, 140, 248, 0.15) 0%, rgba(18, 23, 35, 0.75) 100%);
+  border: 1px solid rgba(129, 140, 248, 0.4);
+}
+
+/* 🌟 Transit Time Highlight */
+.transit-info {
+  margin-top: 0.75rem;
+  padding-top: 0.75rem;
+  border-top: 1px solid var(--border);
+  font-size: 0.85rem;
+}
+
+.transit-info .best-time {
+  color: #34d399;
+  font-weight: 600;
+}
+
+.transit-info .not-visible {
+  color: #f87171;
+  font-weight: 500;
+}
 
 @media (max-width: 600px) {
   body { padding: 1rem; }
