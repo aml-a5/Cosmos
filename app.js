@@ -5,33 +5,58 @@ document.addEventListener('DOMContentLoaded', () => {
   const clockEl = document.getElementById('clock');
   const gridEl = document.getElementById('planet-grid');
 
-  // Live clock
+  // Live UTC clock
   setInterval(() => {
     clockEl.textContent = `UTC: ${new Date().toISOString().slice(0, 19).replace('T', ' ')} UTC`;
   }, 1000);
 
   function init() {
+    console.log('🔍 Checking astronomy engine...');
+    
+    // 1. Verify library loaded
+    if (typeof window.Astronomy === 'undefined') {
+      statusEl.textContent = '❌ Astronomy engine blocked or failed to load. Check network/CDN.';
+      console.error('Astronomy global not found. CDN may be blocked.');
+      return;
+    }
+
+    statusEl.textContent = '📍 Requesting location access...';
+
+    // 2. Geolocation with hard timeout
+    const geoTimeout = setTimeout(() => {
+      observer = new window.Astronomy.Observer(0, 0, 0);
+      statusEl.textContent = '⏱️ Location timed out • Using equator (0,0)';
+      startTracker();
+    }, 5000);
+
     if (navigator.geolocation) {
       navigator.geolocation.getCurrentPosition(
         pos => {
-          observer = new Astronomy.Observer(pos.coords.latitude, pos.coords.longitude, 0);
+          clearTimeout(geoTimeout);
+          observer = new window.Astronomy.Observer(pos.coords.latitude, pos.coords.longitude, 0);
           statusEl.textContent = '📍 Tracking from your location • Updates every 60s';
+          console.log('📍 Location acquired:', pos.coords);
           startTracker();
         },
-        () => {
-          observer = new Astronomy.Observer(0, 0, 0);
-          statusEl.textContent = '📍 Location denied • Using equator default • Updates every 60s';
+        err => {
+          clearTimeout(geoTimeout);
+          observer = new window.Astronomy.Observer(0, 0, 0);
+          statusEl.textContent = `📍 Location: ${err.message || 'Denied'} • Using equator`;
+          console.warn('📍 Location error:', err.code, err.message);
           startTracker();
-        }
+        },
+        { timeout: 4000, enableHighAccuracy: false }
       );
     } else {
-      observer = new Astronomy.Observer(0, 0, 0);
-      statusEl.textContent = '📍 Geolocation unsupported • Using equator default';
+      clearTimeout(geoTimeout);
+      observer = new window.Astronomy.Observer(0, 0, 0);
+      statusEl.textContent = '📍 Geolocation unsupported • Using equator';
       startTracker();
     }
   }
 
   function startTracker() {
+    console.log('🪐 Starting planetary tracking...');
     updatePlanets();
     setInterval(updatePlanets, 60000);
   }
@@ -42,9 +67,9 @@ document.addEventListener('DOMContentLoaded', () => {
 
     planets.forEach(name => {
       try {
-        const eq = Astronomy.Equator(name, now, observer, true, true);
-        const hor = Astronomy.Horizon(now, observer, eq.ra, eq.dec, 'normal');
-        const vec = Astronomy.GeoVector(name, now, true);
+        const eq = window.Astronomy.Equator(name, now, observer, true, true);
+        const hor = window.Astronomy.Horizon(now, observer, eq.ra, eq.dec, 'normal');
+        const vec = window.Astronomy.GeoVector(name, now, true);
         const dist = vec.length;
 
         const card = document.createElement('div');
@@ -59,7 +84,11 @@ document.addEventListener('DOMContentLoaded', () => {
         `;
         gridEl.appendChild(card);
       } catch (err) {
-        console.warn(`Skipping ${name}:`, err.message);
+        console.warn(`⚠️ ${name} calculation failed:`, err.message);
+        const card = document.createElement('div');
+        card.className = 'planet-card';
+        card.innerHTML = `<h2>${emoji(name)} ${name}</h2><p style="color:#f87171">Calculation error</p>`;
+        gridEl.appendChild(card);
       }
     });
   }
