@@ -11,18 +11,12 @@ document.addEventListener('DOMContentLoaded', () => {
   }, 1000);
 
   function init() {
-    console.log('🔍 Checking astronomy engine...');
-    
-    // 1. Verify library loaded
     if (typeof window.Astronomy === 'undefined') {
-      statusEl.textContent = '❌ Astronomy engine blocked or failed to load. Check network/CDN.';
-      console.error('Astronomy global not found. CDN may be blocked.');
+      statusEl.textContent = '❌ Astronomy engine blocked or failed to load.';
       return;
     }
-
     statusEl.textContent = '📍 Requesting location access...';
 
-    // 2. Geolocation with hard timeout
     const geoTimeout = setTimeout(() => {
       observer = new window.Astronomy.Observer(0, 0, 0);
       statusEl.textContent = '⏱️ Location timed out • Using equator (0,0)';
@@ -35,14 +29,12 @@ document.addEventListener('DOMContentLoaded', () => {
           clearTimeout(geoTimeout);
           observer = new window.Astronomy.Observer(pos.coords.latitude, pos.coords.longitude, 0);
           statusEl.textContent = '📍 Tracking from your location • Updates every 60s';
-          console.log('📍 Location acquired:', pos.coords);
           startTracker();
         },
         err => {
           clearTimeout(geoTimeout);
           observer = new window.Astronomy.Observer(0, 0, 0);
           statusEl.textContent = `📍 Location: ${err.message || 'Denied'} • Using equator`;
-          console.warn('📍 Location error:', err.code, err.message);
           startTracker();
         },
         { timeout: 4000, enableHighAccuracy: false }
@@ -56,7 +48,6 @@ document.addEventListener('DOMContentLoaded', () => {
   }
 
   function startTracker() {
-    console.log('🪐 Starting planetary tracking...');
     updatePlanets();
     setInterval(updatePlanets, 60000);
   }
@@ -69,8 +60,10 @@ document.addEventListener('DOMContentLoaded', () => {
       try {
         const eq = window.Astronomy.Equator(name, now, observer, true, true);
         const hor = window.Astronomy.Horizon(now, observer, eq.ra, eq.dec, 'normal');
+        
+        // GeoVector returns { x, y, z, t } in AU. Calculate distance manually.
         const vec = window.Astronomy.GeoVector(name, now, true);
-        const dist = vec.length;
+        const dist = Math.sqrt(vec.x * vec.x + vec.y * vec.y + vec.z * vec.z);
 
         const card = document.createElement('div');
         card.className = 'planet-card';
@@ -87,13 +80,14 @@ document.addEventListener('DOMContentLoaded', () => {
         console.warn(`⚠️ ${name} calculation failed:`, err.message);
         const card = document.createElement('div');
         card.className = 'planet-card';
-        card.innerHTML = `<h2>${emoji(name)} ${name}</h2><p style="color:#f87171">Calculation error</p>`;
+        card.innerHTML = `<h2>${emoji(name)} ${name}</h2><p style="color:#f87171">Calculation error: ${err.message}</p>`;
         gridEl.appendChild(card);
       }
     });
   }
 
   function formatHMS(hours) {
+    if (typeof hours !== 'number') return 'N/A';
     const h = Math.floor(hours);
     const m = Math.floor((hours - h) * 60);
     const s = ((hours - h) * 3600) % 60;
@@ -101,6 +95,7 @@ document.addEventListener('DOMContentLoaded', () => {
   }
 
   function formatDMS(deg) {
+    if (typeof deg !== 'number') return 'N/A';
     const sign = deg < 0 ? '-' : '+';
     const abs = Math.abs(deg);
     const d = Math.floor(abs);
