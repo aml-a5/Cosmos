@@ -1,1 +1,265 @@
+:root {
+  --bg: #0a0e17;
+  --card-bg: rgba(18, 23, 35, 0.75);
+  --text: #e2e8f0;
+  --accent: #818cf8;
+  --border: rgba(129, 140, 248, 0.25);
+  --glow: 0 0 15px rgba(129, 140, 248, 0.15);
+  --header-bg: rgba(17, 24, 39, 0.9);
+}
 
+/* 🌞 Light Theme */
+.light-theme {
+  --bg: #f0f4f8;
+  --card-bg: rgba(255, 255, 255, 0.85);
+  --text: #1e293b;
+  --accent: #4f46e5;
+  --border: rgba(79, 70, 229, 0.25);
+  --glow: 0 0 15px rgba(79, 70, 229, 0.15);
+  --header-bg: rgba(255, 255, 255, 0.9);
+}
+
+* { box-sizing: border-box; margin: 0; padding: 0; }
+
+body {
+  font-family: 'Inter', system-ui, sans-serif;
+  background: radial-gradient(circle at 50% 0%, #111827 0%, var(--bg) 70%);
+  color: var(--text);
+  min-height: 100vh;
+  padding: 2rem;
+  line-height: 1.5;
+  position: relative;
+  overflow-x: hidden;
+  transition: background 0.3s ease, color 0.3s ease;
+}
+
+/* 🌌 Starfield Background */
+body::before {
+  content: '';
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background-image: 
+    radial-gradient(2px 2px at 20px 30px, #eee, rgba(0,0,0,0)),
+    radial-gradient(2px 2px at 40px 70px, #fff, rgba(0,0,0,0)),
+    radial-gradient(2px 2px at 50px 160px, #ddd, rgba(0,0,0,0)),
+    radial-gradient(2px 2px at 90px 40px, #fff, rgba(0,0,0,0)),
+    radial-gradient(2px 2px at 130px 80px, #fff, rgba(0,0,0,0)),
+    radial-gradient(2px 2px at 160px 120px, #ddd, rgba(0,0,0,0));
+  background-repeat: repeat;
+  background-size: 200px 200px;
+  opacity: 0.3;
+  z-index: -1;
+  animation: twinkle 5s ease-in-out infinite;
+}
+
+body::after {
+  content: '';
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: radial-gradient(circle at 20% 50%, rgba(129, 140, 248, 0.15) 0%, transparent 50%),
+              radial-gradient(circle at 80% 80%, rgba(167, 139, 250, 0.1) 0%, transparent 50%);
+  z-index: -1;
+  pointer-events: none;
+}
+
+@keyframes twinkle {
+  0%, 100% { opacity: 0.3; }
+  50% { opacity: 0.5; }
+}
+
+/* ✨ Flying Stars (Shooting Stars) */
+.shooting-star {
+  position: fixed;
+  width: 100px;
+  height: 2px;
+  background: linear-gradient(90deg, rgba(255,255,255,1), transparent);
+  animation: shoot 3s linear infinite;
+  opacity: 0;
+  z-index: 0;
+  pointer-events: none;
+}
+
+.shooting-star::before {
+  content: '';
+  position: absolute;
+  top: 50%;
+  right: 0;
+  width: 4px;
+  height: 4px;
+  background: white;
+  border-radius: 50%;
+  box-shadow: 0 0 10px white, 0 0 20px white;
+}
+
+@keyframes shoot {
+  0% {
+    transform: translateX(-100px) translateY(100px) rotate(-45deg);
+    opacity: 1;
+  }
+  100% {
+    transform: translateX(calc(100vw + 100px)) translateY(calc(-100vh - 100px)) rotate(-45deg);
+    opacity: 0;
+  }
+}
+
+/* Theme Toggle Button */
+.theme-toggle {
+  position: fixed;
+  top: 1.5rem;
+  right: 1.5rem;
+  background: var(--card-bg);
+  border: 1px solid var(--border);
+  border-radius: 50%;
+  width: 48px;
+  height: 48px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.5rem;
+  backdrop-filter: blur(12px);
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+  z-index: 1000;
+}
+
+.theme-toggle:hover {
+  transform: scale(1.1) rotate(15deg);
+  box-shadow: var(--glow);
+}
+
+header { 
+  text-align: center; 
+  margin-bottom: 2.5rem; 
+  position: relative; 
+  z-index: 1;
+  background: var(--header-bg);
+  padding: 1.5rem;
+  border-radius: 16px;
+  backdrop-filter: blur(12px);
+  border: 1px solid var(--border);
+}
+
+header h1 { 
+  font-size: 2.4rem; 
+  font-weight: 600; 
+  margin-bottom: 0.4rem; 
+}
+
+#status { 
+  opacity: 0.8; 
+  font-size: 0.95rem; 
+}
+
+#clock { 
+  font-variant-numeric: tabular-nums; 
+  opacity: 0.6; 
+  margin-top: 0.3rem; 
+}
+
+#planet-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+  gap: 1.5rem;
+  max-width: 1200px;
+  margin: 0 auto;
+  position: relative;
+  z-index: 1;
+}
+
+.planet-card {
+  background: var(--card-bg);
+  border: 1px solid var(--border);
+  border-radius: 16px;
+  padding: 1.5rem;
+  backdrop-filter: blur(12px);
+  transition: transform 0.25s ease, box-shadow 0.25s ease;
+}
+
+.planet-card:hover {
+  transform: translateY(-4px);
+  box-shadow: var(--glow);
+  border-color: var(--accent);
+}
+
+.planet-card h2 {
+  font-size: 1.3rem;
+  margin-bottom: 1rem;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.planet-card p {
+  margin: 0.45rem 0;
+  font-size: 0.92rem;
+  opacity: 0.85;
+  display: flex;
+  justify-content: space-between;
+}
+
+.planet-card p span { 
+  font-weight: 500; 
+  color: var(--accent); 
+}
+
+/* 🌙 Moon Card Styling */
+.moon-card {
+  background: linear-gradient(135deg, rgba(129, 140, 248, 0.15) 0%, rgba(18, 23, 35, 0.75) 100%);
+  border: 1px solid rgba(129, 140, 248, 0.4);
+}
+
+.light-theme .moon-card {
+  background: linear-gradient(135deg, rgba(79, 70, 229, 0.15) 0%, rgba(255, 255, 255, 0.85) 100%);
+}
+
+/* 🌟 Rise/Set Times */
+.rise-set-info {
+  margin-top: 0.75rem;
+  padding-top: 0.75rem;
+  border-top: 1px solid var(--border);
+  font-size: 0.85rem;
+  display: flex;
+  justify-content: space-between;
+  gap: 1rem;
+}
+
+.rise-set-info .rise-time,
+.rise-set-info .set-time {
+  flex: 1;
+  text-align: center;
+  padding: 0.4rem;
+  background: rgba(129, 140, 248, 0.1);
+  border-radius: 6px;
+}
+
+.rise-set-info .rise-time {
+  color: #34d399;
+}
+
+.rise-set-info .set-time {
+  color: #f87171;
+}
+
+.rise-set-info .not-visible {
+  color: #fbbf24;
+  text-align: center;
+  width: 100%;
+}
+
+@media (max-width: 600px) {
+  body { padding: 1rem; }
+  header h1 { font-size: 1.8rem; }
+  .theme-toggle {
+    top: 1rem;
+    right: 1rem;
+    width: 42px;
+    height: 42px;
+    font-size: 1.2rem;
+  }
+}
