@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Planetary Tracker</title>
   
-  <!-- ✅ Inline favicon (no 404) -->
+  <!-- ✅ Inline favicon -->
   <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Ccircle cx='50' cy='50' r='40' fill='%23818cf8'/%3E%3Cellipse cx='50' cy='50' rx='55' ry='12' fill='none' stroke='%23c7d2fe' stroke-width='4' transform='rotate(-20 50 50)'/%3E%3C/svg%3E">
   
   <link rel="stylesheet" href="style.css">
@@ -13,6 +13,9 @@
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600&display=swap" rel="stylesheet">
 </head>
 <body>
+  <!-- 🌞🌙 Theme Toggle -->
+  <button class="theme-toggle" id="themeToggle" title="Toggle theme">🌙</button>
+  
   <header>
     <h1>🌌 Planetary Tracker</h1>
     <p id="status">🔭 Initializing orbital mechanics...</p>
@@ -21,6 +24,9 @@
   <main>
     <div id="planet-grid"></div>
   </main>
+
+  <!-- ✨ Flying Stars Container -->
+  <div id="shootingStars"></div>
 
   <script src="https://cdn.jsdelivr.net/npm/astronomy-engine@2.1.19/astronomy.browser.min.js"></script>
   <script src="app.js?v=4" defer></script>
