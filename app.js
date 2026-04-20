@@ -67,14 +67,10 @@ document.addEventListener('DOMContentLoaded', () => {
       const vec = window.Astronomy.GeoVector('Moon', now, true);
       const dist = Math.hypot(vec.x, vec.y, vec.z);
 
-      // Calculate moon age (days since new moon)
       const phaseAngle = window.Astronomy.MoonPhase(now);
       const moonAge = (phaseAngle / 360) * 29.53;
-
-      // Get phase name
       const phaseName = getMoonPhaseName(phaseAngle);
 
-      // Find next transit (highest point)
       const transit = window.Astronomy.SearchHourAngle('Moon', observer, now, 0);
       const transitTime = new Date(transit.time);
 
@@ -93,7 +89,6 @@ document.addEventListener('DOMContentLoaded', () => {
         </div>
       `;
       
-      // Insert moon card at the top
       if (gridEl.firstChild) {
         gridEl.insertBefore(moonCard, gridEl.firstChild);
       } else {
@@ -128,7 +123,6 @@ document.addEventListener('DOMContentLoaded', () => {
   function updatePlanets() {
     const now = new Date();
     
-    // Remove old planet cards (keep moon card if exists)
     const moonCard = gridEl.querySelector('.moon-card');
     gridEl.innerHTML = '';
     if (moonCard) gridEl.appendChild(moonCard);
@@ -140,7 +134,6 @@ document.addEventListener('DOMContentLoaded', () => {
         const vec = window.Astronomy.GeoVector(name, now, true);
         const dist = Math.hypot(vec.x, vec.y, vec.z);
 
-        // 🌟 Calculate transit time (when planet reaches highest altitude)
         let transitInfo = '';
         try {
           const transit = window.Astronomy.SearchHourAngle(name, observer, now, 0);
@@ -198,7 +191,7 @@ document.addEventListener('DOMContentLoaded', () => {
   }
 
   function getEmoji(name) {
-    const map = { Mercury: '☿️', Venus: '♀️', Mars: '♂️', Jupiter: '♃', Saturn: '♄', Uranus: '⛢', Neptune: '♆' };
+    const map = { Mercury: '☿️', Venus: '♀️', Venus: '♀️', Mars: '♂️', Jupiter: '♃', Saturn: '♄', Uranus: '⛢', Neptune: '♆' };
     return map[name] || '🪐';
   }
 
