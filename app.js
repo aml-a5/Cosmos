@@ -5,7 +5,6 @@ document.addEventListener('DOMContentLoaded', () => {
   const clockEl = document.getElementById('clock');
   const gridEl = document.getElementById('planet-grid');
 
-  // Live UTC clock
   setInterval(() => {
     clockEl.textContent = `UTC: ${new Date().toISOString().slice(0, 19).replace('T', ' ')} UTC`;
   }, 1000);
@@ -15,7 +14,7 @@ document.addEventListener('DOMContentLoaded', () => {
       statusEl.textContent = '❌ Astronomy engine blocked or failed to load.';
       return;
     }
-    statusEl.textContent = '📍 Requesting location access...';
+    statusEl.textContent = '📍 Requesting location...';
 
     const geoTimeout = setTimeout(() => {
       observer = new window.Astronomy.Observer(0, 0, 0);
@@ -52,42 +51,49 @@ document.addEventListener('DOMContentLoaded', () => {
     setInterval(updatePlanets, 60000);
   }
 
+  let debugLogged = false;
   function updatePlanets() {
     const now = new Date();
     gridEl.innerHTML = '';
 
-    planets.forEach(name => {
+    planets.forEach((name, i) => {
       try {
         const eq = window.Astronomy.Equator(name, now, observer, true, true);
-        const hor = window.Astronomy.Horizon(now, observer, eq.ra, eq.dec, 'normal');
-        
-        // GeoVector returns { x, y, z, t } in AU. Calculate distance manually.
+        const hor = window.Astronomy.Horizon(now, observer, eq?.ra ?? 0, eq?.dec ?? 0, 'normal');
         const vec = window.Astronomy.GeoVector(name, now, true);
-        const dist = Math.sqrt(vec.x * vec.x + vec.y * vec.y + vec.z * vec.z);
+
+        // 🔍 One-time debug dump
+        if (i === 0 && !debugLogged) {
+          console.log('📦 Library Output Debug:', { eq, hor, vec });
+          debugLogged = true;
+        }
+
+        // Safe extraction (handles v2 naming quirks)
+        const ra = eq?.ra ?? 0;
+        const dec = eq?.dec ?? 0;
+        const alt = hor?.altitude ?? hor?.alt ?? 0;
+        const az = hor?.azimuth ?? hor?.az ?? 0;
+        const dist = Math.hypot(vec?.x ?? 0, vec?.y ?? 0, vec?.z ?? 0);
 
         const card = document.createElement('div');
         card.className = 'planet-card';
         card.innerHTML = `
           <h2>${emoji(name)} ${name}</h2>
-          <p><span>RA:</span> ${formatHMS(eq.ra)}</p>
-          <p><span>Dec:</span> ${formatDMS(eq.dec)}</p>
-          <p><span>Altitude:</span> ${hor.altitude.toFixed(2)}°</p>
-          <p><span>Azimuth:</span> ${hor.azimuth.toFixed(2)}°</p>
+          <p><span>RA:</span> ${formatHMS(ra)}</p>
+          <p><span>Dec:</span> ${formatDMS(dec)}</p>
+          <p><span>Altitude:</span> ${Number(alt).toFixed(2)}°</p>
+          <p><span>Azimuth:</span> ${Number(az).toFixed(2)}°</p>
           <p><span>Distance:</span> ${dist.toFixed(4)} AU</p>
         `;
         gridEl.appendChild(card);
       } catch (err) {
-        console.warn(`⚠️ ${name} calculation failed:`, err.message);
-        const card = document.createElement('div');
-        card.className = 'planet-card';
-        card.innerHTML = `<h2>${emoji(name)} ${name}</h2><p style="color:#f87171">Calculation error: ${err.message}</p>`;
-        gridEl.appendChild(card);
+        console.warn(`⚠️ ${name} failed:`, err.message);
+        gridEl.innerHTML += `<div class="planet-card"><h2>${emoji(name)} ${name}</h2><p style="color:#f87171">Error: ${err.message}</p></div>`;
       }
     });
   }
 
   function formatHMS(hours) {
-    if (typeof hours !== 'number') return 'N/A';
     const h = Math.floor(hours);
     const m = Math.floor((hours - h) * 60);
     const s = ((hours - h) * 3600) % 60;
@@ -95,7 +101,6 @@ document.addEventListener('DOMContentLoaded', () => {
   }
 
   function formatDMS(deg) {
-    if (typeof deg !== 'number') return 'N/A';
     const sign = deg < 0 ? '-' : '+';
     const abs = Math.abs(deg);
     const d = Math.floor(abs);
