@@ -56,7 +56,7 @@ document.addEventListener('DOMContentLoaded', () => {
     }, 60000);
   }
 
-  // 🌙 Moon Phase & Position
+  // 🌙 Moon Phase & Position (FIXED)
   function updateMoon() {
     const now = new Date();
     try {
@@ -71,8 +71,18 @@ document.addEventListener('DOMContentLoaded', () => {
       const moonAge = (phaseAngle / 360) * 29.53;
       const phaseName = getMoonPhaseName(phaseAngle);
 
-      const transit = window.Astronomy.SearchHourAngle('Moon', observer, now, 0);
-      const transitTime = new Date(transit.time);
+      // 🔧 FIXED: Safer transit calculation
+      let transitHTML = '';
+      try {
+        const transit = window.Astronomy.SearchHourAngle('Moon', observer, now, 0);
+        if (transit && transit.time && isFinite(transit.time)) {
+          const transitTime = new Date(transit.time);
+          transitHTML = `<div class="transit-info"><span class="best-time">🌟 Best viewing: ${formatTime(transitTime)}</span></div>`;
+        }
+      } catch (e) {
+        // Silently fail - transit not available
+        console.log('Moon transit not available');
+      }
 
       const moonCard = document.createElement('div');
       moonCard.className = 'planet-card moon-card';
@@ -84,9 +94,7 @@ document.addEventListener('DOMContentLoaded', () => {
         <p><span>Altitude:</span> ${hor.altitude.toFixed(2)}°</p>
         <p><span>Azimuth:</span> ${hor.azimuth.toFixed(2)}°</p>
         <p><span>Distance:</span> ${dist.toFixed(4)} AU</p>
-        <div class="transit-info">
-          <span class="best-time">🌟 Best viewing: ${formatTime(transitTime)}</span>
-        </div>
+        ${transitHTML}
       `;
       
       if (gridEl.firstChild) {
@@ -119,7 +127,7 @@ document.addEventListener('DOMContentLoaded', () => {
     });
   }
 
-  // 🪐 Planets with Transit Times
+  // 🪐 Planets with Transit Times (FIXED)
   function updatePlanets() {
     const now = new Date();
     
@@ -134,24 +142,28 @@ document.addEventListener('DOMContentLoaded', () => {
         const vec = window.Astronomy.GeoVector(name, now, true);
         const dist = Math.hypot(vec.x, vec.y, vec.z);
 
+        // 🔧 FIXED: Safer transit calculation
         let transitInfo = '';
         try {
           const transit = window.Astronomy.SearchHourAngle(name, observer, now, 0);
-          const transitTime = new Date(transit.time);
-          const hoursUntilTransit = (transitTime - now) / (1000 * 60 * 60);
-          
-          if (hor.altitude > 0) {
-            if (hoursUntilTransit > -2 && hoursUntilTransit < 2) {
-              transitInfo = `<div class="transit-info"><span class="best-time">🌟 Transiting now!</span></div>`;
-            } else if (hoursUntilTransit > 0 && hoursUntilTransit < 12) {
-              transitInfo = `<div class="transit-info"><span class="best-time">🌟 Best viewing: ${formatTime(transitTime)}</span></div>`;
+          if (transit && transit.time && isFinite(transit.time)) {
+            const transitTime = new Date(transit.time);
+            const hoursUntilTransit = (transitTime - now) / (1000 * 60 * 60);
+            
+            if (hor.altitude > 0) {
+              if (hoursUntilTransit > -2 && hoursUntilTransit < 2) {
+                transitInfo = `<div class="transit-info"><span class="best-time">🌟 Transiting now!</span></div>`;
+              } else if (hoursUntilTransit > 0 && hoursUntilTransit < 12) {
+                transitInfo = `<div class="transit-info"><span class="best-time">🌟 Best viewing: ${formatTime(transitTime)}</span></div>`;
+              } else {
+                transitInfo = `<div class="transit-info"><span>Next transit: ${formatTime(transitTime)}</span></div>`;
+              }
             } else {
-              transitInfo = `<div class="transit-info"><span>Next transit: ${formatTime(transitTime)}</span></div>`;
+              transitInfo = `<div class="transit-info"><span class="not-visible">🌑 Below horizon</span></div>`;
             }
-          } else {
-            transitInfo = `<div class="transit-info"><span class="not-visible">🌑 Below horizon</span></div>`;
           }
         } catch (e) {
+          // Transit calculation failed - just show planet data
           transitInfo = '';
         }
 
@@ -191,7 +203,7 @@ document.addEventListener('DOMContentLoaded', () => {
   }
 
   function getEmoji(name) {
-    const map = { Mercury: '☿️', Venus: '♀️', Venus: '♀️', Mars: '♂️', Jupiter: '♃', Saturn: '♄', Uranus: '⛢', Neptune: '♆' };
+    const map = { Mercury: '☿️', Venus: '♀️', Mars: '♂️', Jupiter: '♃', Saturn: '♄', Uranus: '⛢', Neptune: '♆' };
     return map[name] || '🪐';
   }
 
