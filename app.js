@@ -4,6 +4,35 @@ document.addEventListener('DOMContentLoaded', () => {
   const statusEl = document.getElementById('status');
   const clockEl = document.getElementById('clock');
   const gridEl = document.getElementById('planet-grid');
+  const themeToggle = document.getElementById('themeToggle');
+
+  // 🌞 Theme Toggle
+  const savedTheme = localStorage.getItem('theme') || 'dark';
+  if (savedTheme === 'light') {
+    document.body.classList.add('light-theme');
+    themeToggle.textContent = '🌞';
+  }
+
+  themeToggle.addEventListener('click', () => {
+    document.body.classList.toggle('light-theme');
+    const isLight = document.body.classList.contains('light-theme');
+    themeToggle.textContent = isLight ? '🌞' : '🌙';
+    localStorage.setItem('theme', isLight ? 'light' : 'dark');
+  });
+
+  // ✨ Create Flying Stars
+  function createShootingStars() {
+    const container = document.getElementById('shootingStars');
+    for (let i = 0; i < 3; i++) {
+      const star = document.createElement('div');
+      star.className = 'shooting-star';
+      star.style.top = Math.random() * 50 + '%';
+      star.style.animationDelay = Math.random() * 3 + 's';
+      star.style.animationDuration = (Math.random() * 2 + 2) + 's';
+      container.appendChild(star);
+    }
+  }
+  createShootingStars();
 
   setInterval(() => {
     clockEl.textContent = `UTC: ${new Date().toISOString().slice(0, 19).replace('T', ' ')} UTC`;
@@ -28,7 +57,7 @@ document.addEventListener('DOMContentLoaded', () => {
         pos => {
           clearTimeout(geoTimeout);
           observer = new window.Astronomy.Observer(pos.coords.latitude, pos.coords.longitude, 0);
-          statusEl.textContent = '✅ Live Tracking with Moon';
+          statusEl.textContent = '✅ Live Tracking with Rise/Set Times';
           startTracker();
         },
         err => {
@@ -56,7 +85,7 @@ document.addEventListener('DOMContentLoaded', () => {
     }, 60000);
   }
 
-  // 🌙 Moon Phase & Position (NO TRANSIT)
+  // 🌙 Moon Phase & Position
   function updateMoon() {
     const now = new Date();
     try {
@@ -104,7 +133,39 @@ document.addEventListener('DOMContentLoaded', () => {
     return '(Waning Crescent)';
   }
 
-  // 🪐 Planets (NO TRANSIT)
+  // 🌅 Calculate Rise/Set Times
+  function getRiseSetTimes(name, now) {
+    try {
+      // Search for rise time (altitude = -0.833° for atmospheric refraction)
+      const rise = window.Astronomy.SearchRiseSet(name, observer, now, -0.833, 1);
+      const set = window.Astronomy.SearchRiseSet(name, observer, now, -0.833, -1);
+      
+      let riseTime = null;
+      let setTime = null;
+      
+      if (rise && rise.time && isFinite(rise.time)) {
+        riseTime = new Date(rise.time);
+      }
+      if (set && set.time && isFinite(set.time)) {
+        setTime = new Date(set.time);
+      }
+      
+      return { riseTime, setTime };
+    } catch (e) {
+      return { riseTime: null, setTime: null };
+    }
+  }
+
+  function formatTime(date) {
+    if (!date) return 'N/A';
+    return date.toLocaleTimeString('en-US', { 
+      hour: '2-digit', 
+      minute: '2-digit',
+      hour12: true
+    });
+  }
+
+  // 🪐 Planets with Rise/Set Times
   function updatePlanets() {
     const now = new Date();
     
@@ -119,6 +180,27 @@ document.addEventListener('DOMContentLoaded', () => {
         const vec = window.Astronomy.GeoVector(name, now, true);
         const dist = Math.hypot(vec.x, vec.y, vec.z);
 
+        // 🌅 Get rise/set times
+        const { riseTime, setTime } = getRiseSetTimes(name, now);
+
+        let riseSetHTML = '';
+        if (riseTime || setTime) {
+          if (hor.altitude > 0) {
+            riseSetHTML = `
+              <div class="rise-set-info">
+                <div class="rise-time">🌅 Rise: ${formatTime(riseTime)}</div>
+                <div class="set-time">🌇 Set: ${formatTime(setTime)}</div>
+              </div>
+            `;
+          } else {
+            riseSetHTML = `
+              <div class="rise-set-info">
+                <div class="not-visible">🌑 Below horizon<br>Next rise: ${formatTime(riseTime)}</div>
+              </div>
+            `;
+          }
+        }
+
         const card = document.createElement('div');
         card.className = 'planet-card';
         card.innerHTML = `
@@ -128,6 +210,7 @@ document.addEventListener('DOMContentLoaded', () => {
           <p><span>Altitude:</span> ${hor.altitude.toFixed(2)}°</p>
           <p><span>Azimuth:</span> ${hor.azimuth.toFixed(2)}°</p>
           <p><span>Distance:</span> ${dist.toFixed(4)} AU</p>
+          ${riseSetHTML}
         `;
         gridEl.appendChild(card);
 
